@@ -1,0 +1,459 @@
+// PartsChai - PC Parts Marketplace Platform
+// Database Schema - Configured for Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// ============ USER MANAGEMENT ============
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  passwordHash          String?
+  phone                 String?
+  fullName              String?
+  avatarUrl             String?
+  accountType           String    @default("individual") // individual | company
+  companyName           String?
+  companyDescription    String?
+  companyLogoUrl        String?
+  role                  String    @default("user") // user | member | admin
+  isVerified            Boolean   @default(false)
+  isActive              Boolean   @default(true)
+  isBlocked             Boolean   @default(false)
+  blockReason           String?
+  languagePreference    String    @default("en") // en | bn
+  showPhoneOnAds        Boolean   @default(true)
+  deviceFingerprint     String?
+  lastLoginAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  ads                   Ad[]
+  adBoosts              AdBoost[]
+  memberships           Membership[]
+  payments              Payment[]
+  sentMessages          Message[]           @relation("SentMessages")
+  conversationsAsBuyer  Conversation[]      @relation("BuyerConversations")
+  conversationsAsSeller Conversation[]      @relation("SellerConversations")
+  savedAds              SavedAd[]
+  savedSearches         SavedSearch[]
+  reports               Report[]            @relation("ReporterReports")
+  resolvedReports       Report[]            @relation("AdminResolvedReports")
+  notifications         Notification[]
+  cvs                   CV[]
+  shop                  Shop?
+}
+
+// ============ CATEGORIES ============
+
+model Category {
+  id                String     @id @default(cuid())
+  nameEn            String
+  nameBn            String?
+  slug              String     @unique
+  parentId          String?
+  iconUrl           String?
+  displayOrder      Int        @default(0)
+  isActive          Boolean    @default(true)
+  maxFreePhotos     Int        @default(5)
+  maxMemberPhotos   Int        @default(15)
+  isPaidPosting     Boolean    @default(false)
+  postingFee        Float?
+  createdAt         DateTime   @default(now())
+
+  // Relations
+  parent            Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[] @relation("CategoryHierarchy")
+  ads               Ad[]
+  subCategoryAds    Ad[]       @relation("AdSubCategory")
+  categoryAttributes CategoryAttribute[]
+  membershipPlans   MembershipPlan[]
+}
+
+model CategoryAttribute {
+  id              String    @id @default(cuid())
+  categoryId      String
+  attributeKey    String
+  labelEn         String
+  labelBn         String?
+  fieldType       String    // text | number | dropdown | radio | checkbox | date
+  isRequired      Boolean   @default(false)
+  isFilterable    Boolean   @default(true)
+  dropdownOptions String?   // JSON array of options
+  displayOrder    Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  category        Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, attributeKey])
+}
+
+// ============ ADS ============
+
+model Ad {
+  id                  String      @id @default(cuid())
+  userId              String
+  categoryId          String
+  subCategoryId       String?
+  title               String
+  slug                String
+  description         String
+  price               Float
+  isPriceNegotiable   Boolean     @default(true)
+  condition           String      @default("used") // new | used
+  locationDivision    String?
+  locationDistrict    String?
+  locationArea        String?
+  locationLat         Float?
+  locationLng         Float?
+  status              String      @default("pending_review") // pending_review | active | rejected | expired | deleted | sold
+  rejectionReason     String?
+  isFeatured          Boolean     @default(false)
+  isUrgent            Boolean     @default(false)
+  isTopAd             Boolean     @default(false)
+  viewCount           Int         @default(0)
+  inquiryCount        Int         @default(0)
+  phoneRevealCount    Int         @default(0)
+  adReferenceId       String      @unique
+  expiresAt           DateTime?
+  publishedAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  user                User        @relation(fields: [userId], references: [id])
+  category            Category    @relation(fields: [categoryId], references: [id])
+  subCategory         Category?   @relation("AdSubCategory", fields: [subCategoryId], references: [id])
+  images              AdImage[]
+  attributes          AdAttribute[]
+  boosts              AdBoost[]
+  conversations       Conversation[]
+  savedByUsers        SavedAd[]
+  reports             Report[]
+}
+
+model AdImage {
+  id              String    @id @default(cuid())
+  adId            String
+  imageUrl        String
+  displayOrder    Int       @default(0)
+  isPrimary       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  ad              Ad        @relation(fields: [adId], references: [id])
+}
+
+model AdAttribute {
+  id              String    @id @default(cuid())
+  adId            String
+  attributeKey    String
+  attributeValue  String
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  ad              Ad        @relation(fields: [adId], references: [id])
+}
+
+model AdBoost {
+  id              String    @id @default(cuid())
+  adId            String
+  userId          String
+  boostType       String    // top_ad | bump_up | urgent | featured | scheduled
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean   @default(false)
+  costPaid        Float?
+  paymentId       String?
+  scheduledFor    DateTime?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  ad              Ad        @relation(fields: [adId], references: [id])
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+// ============ MEMBERSHIP ============
+
+model MembershipPlan {
+  id                        String      @id @default(cuid())
+  name                      String
+  slug                      String      @unique
+  priceMonthly              Float
+  priceAnnually             Float
+  maxActiveAds              Int         @default(50)
+  autoBumpIntervalHours     Int         @default(24)
+  freeTopAdVouchersMonthly  Int         @default(2)
+  maxPhotosPerAd            Int         @default(15)
+  hasShopPage               Boolean     @default(true)
+  hasAnalytics              Boolean     @default(true)
+  hasBuyerTracking          Boolean     @default(true)
+  hasPrioritySupport        Boolean     @default(true)
+  hasVerifiedBadge          Boolean     @default(true)
+  hasSuperchargedAds        Boolean     @default(false)
+  isActive                  Boolean     @default(true)
+  categoryId                String?
+  createdAt                 DateTime    @default(now())
+
+  // Relations
+  category                  Category?   @relation(fields: [categoryId], references: [id])
+  memberships               Membership[]
+}
+
+model Membership {
+  id                  String    @id @default(cuid())
+  userId              String
+  planId              String
+  status              String    @default("active") // active | expired | cancelled
+  startsAt            DateTime  @default(now())
+  endsAt              DateTime
+  autoRenew           Boolean   @default(false)
+  vouchersTotal       Int       @default(0)
+  vouchersUsed        Int       @default(0)
+  vouchersRemaining   Int       @default(0)
+  paymentId           String?
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id])
+  plan                MembershipPlan @relation(fields: [planId], references: [id])
+}
+
+// ============ PAYMENTS ============
+
+model Payment {
+  id              String    @id @default(cuid())
+  userId          String
+  amount          Float
+  currency        String    @default("BDT")
+  paymentMethod   String?   // card | bkash | nagad | bank
+  paymentGateway  String?
+  status          String    @default("pending") // pending | completed | failed | refunded
+  referenceId     String?
+  metadata        String?   // JSON
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+// ============ CHAT / MESSAGING ============
+
+model Conversation {
+  id                  String    @id @default(cuid())
+  adId                String
+  buyerId             String
+  sellerId            String
+  lastMessageAt       DateTime?
+  isArchivedByBuyer   Boolean   @default(false)
+  isArchivedBySeller  Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  ad                  Ad        @relation(fields: [adId], references: [id])
+  buyer               User      @relation("BuyerConversations", fields: [buyerId], references: [id])
+  seller              User      @relation("SellerConversations", fields: [sellerId], references: [id])
+  messages            Message[]
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  conversationId  String
+  senderId        String
+  content         String
+  isRead          Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  sender          User        @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+// ============ SAVED ITEMS ============
+
+model SavedAd {
+  id          String    @id @default(cuid())
+  userId      String
+  adId        String
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+  ad          Ad        @relation(fields: [adId], references: [id])
+}
+
+model SavedSearch {
+  id          String    @id @default(cuid())
+  userId      String
+  query       String
+  filtersJson String?
+  emailAlert  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+// ============ REPORTS ============
+
+model Report {
+  id              String    @id @default(cuid())
+  reporterId      String
+  adId            String
+  reason          String
+  description     String?
+  status          String    @default("open") // open | reviewed | resolved
+  adminNotes      String?
+  resolvedById    String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  reporter        User      @relation("ReporterReports", fields: [reporterId], references: [id])
+  resolvedBy      User?     @relation("AdminResolvedReports", fields: [resolvedById], references: [id])
+  ad              Ad        @relation(fields: [adId], references: [id])
+}
+
+// ============ CVs (Jobs) ============
+
+model CV {
+  id                String    @id @default(cuid())
+  userId            String
+  fullName          String
+  email             String
+  phone             String?
+  location          String?
+  experienceYears   Int?
+  skillsJson        String?   // JSON array
+  resumeUrl         String?
+  isPublic          Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id])
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String    // new_message | ad_approved | ad_rejected | membership_expiry | etc
+  title       String
+  body        String?
+  link        String?
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+// ============ BANNER ADS ============
+
+model BannerAd {
+  id              String    @id @default(cuid())
+  advertiserName  String
+  imageUrl        String
+  targetUrl       String
+  placement       String    // homepage | sidebar | listing_top | search_results
+  startsAt        DateTime
+  endsAt          DateTime
+  isActive        Boolean   @default(true)
+  impressionCount Int       @default(0)
+  clickCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+}
+
+// ============ SHOP (Member Storefront) ============
+
+model Shop {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  businessName        String
+  businessTagline     String?
+  businessDescription String?
+  bannerUrl           String?
+  logoUrl             String?
+  address             String?
+  websiteUrl          String?
+  facebookUrl         String?
+  instagramUrl        String?
+  whatsappNumber      String?
+  contactEmail        String?
+  contactPhone        String?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id])
+}
+
+// ============ BLOCKLIST ============
+
+model BlockedKeyword {
+  id          String    @id @default(cuid())
+  keyword     String    @unique
+  matchType   String    @default("contains") // exact | contains | regex
+  createdAt   DateTime  @default(now())
+}
+
+model BlockedIP {
+  id          String    @id @default(cuid())
+  ipAddress   String    @unique
+  reason      String?
+  createdAt   DateTime  @default(now())
+}
+
+// ============ PLATFORM SETTINGS ============
+
+model PlatformSetting {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  value       String
+  updatedAt   DateTime  @updatedAt
+}
+
+// ============ LOCATION DATA ============
+
+model Division {
+  id          String    @id @default(cuid())
+  nameEn      String
+  nameBn      String?
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  districts   District[]
+}
+
+model District {
+  id          String    @id @default(cuid())
+  divisionId  String
+  nameEn      String
+  nameBn      String?
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  division    Division  @relation(fields: [divisionId], references: [id])
+  areas       Area[]
+}
+
+model Area {
+  id          String    @id @default(cuid())
+  districtId  String
+  nameEn      String
+  nameBn      String?
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  district    District  @relation(fields: [districtId], references: [id])
+}
