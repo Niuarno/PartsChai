@@ -7,8 +7,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("postgresql://postgres.yozzmybejwodnejyzojt:Mdfarhan7025@aws-1-ap-south-1.pooler.supabase.com:6543/postgres")
-  directUrl = env("postgresql://postgres:Mdfarhan7025@db.yozzmybejwodnejyzojt.supabase.co:5432/postgres")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
   relationMode = "prisma"
 }
 
@@ -71,8 +71,8 @@ model Category {
   postingFee        Float?
   createdAt         DateTime   @default(now())
 
-  // Relations
-  parent            Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  // Relations - Self-relation requires Restrict on one side
+  parent            Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   children          Category[] @relation("CategoryHierarchy")
   ads               Ad[]
   subCategoryAds    Ad[]       @relation("AdSubCategory")
@@ -94,7 +94,7 @@ model CategoryAttribute {
   createdAt       DateTime  @default(now())
 
   // Relations
-  category        Category  @relation(fields: [categoryId], references: [id])
+  category        Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([categoryId, attributeKey])
 }
@@ -132,9 +132,9 @@ model Ad {
   updatedAt           DateTime    @updatedAt
 
   // Relations
-  user                User        @relation(fields: [userId], references: [id])
-  category            Category    @relation(fields: [categoryId], references: [id])
-  subCategory         Category?   @relation("AdSubCategory", fields: [subCategoryId], references: [id])
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  category            Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  subCategory         Category?   @relation("AdSubCategory", fields: [subCategoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   images              AdImage[]
   attributes          AdAttribute[]
   boosts              AdBoost[]
@@ -152,7 +152,7 @@ model AdImage {
   createdAt       DateTime  @default(now())
 
   // Relations
-  ad              Ad        @relation(fields: [adId], references: [id])
+  ad              Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model AdAttribute {
@@ -163,7 +163,7 @@ model AdAttribute {
   createdAt       DateTime  @default(now())
 
   // Relations
-  ad              Ad        @relation(fields: [adId], references: [id])
+  ad              Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model AdBoost {
@@ -180,8 +180,8 @@ model AdBoost {
   createdAt       DateTime  @default(now())
 
   // Relations
-  ad              Ad        @relation(fields: [adId], references: [id])
-  user            User      @relation(fields: [userId], references: [id])
+  ad              Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ MEMBERSHIP ============
@@ -207,7 +207,7 @@ model MembershipPlan {
   createdAt                 DateTime    @default(now())
 
   // Relations
-  category                  Category?   @relation(fields: [categoryId], references: [id])
+  category                  Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   memberships               Membership[]
 }
 
@@ -226,8 +226,8 @@ model Membership {
   createdAt           DateTime  @default(now())
 
   // Relations
-  user                User      @relation(fields: [userId], references: [id])
-  plan                MembershipPlan @relation(fields: [planId], references: [id])
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  plan                MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 // ============ PAYMENTS ============
@@ -245,7 +245,7 @@ model Payment {
   createdAt       DateTime  @default(now())
 
   // Relations
-  user            User      @relation(fields: [userId], references: [id])
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ CHAT / MESSAGING ============
@@ -261,9 +261,9 @@ model Conversation {
   createdAt           DateTime  @default(now())
 
   // Relations
-  ad                  Ad        @relation(fields: [adId], references: [id])
-  buyer               User      @relation("BuyerConversations", fields: [buyerId], references: [id])
-  seller              User      @relation("SellerConversations", fields: [sellerId], references: [id])
+  ad                  Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  buyer               User      @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  seller              User      @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   messages            Message[]
 }
 
@@ -276,8 +276,8 @@ model Message {
   createdAt       DateTime    @default(now())
 
   // Relations
-  conversation    Conversation @relation(fields: [conversationId], references: [id])
-  sender          User        @relation("SentMessages", fields: [senderId], references: [id])
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sender          User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ SAVED ITEMS ============
@@ -289,8 +289,8 @@ model SavedAd {
   createdAt   DateTime  @default(now())
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id])
-  ad          Ad        @relation(fields: [adId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ad          Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model SavedSearch {
@@ -302,7 +302,7 @@ model SavedSearch {
   createdAt   DateTime  @default(now())
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ REPORTS ============
@@ -318,10 +318,10 @@ model Report {
   resolvedById    String?
   createdAt       DateTime  @default(now())
 
-  // Relations
-  reporter        User      @relation("ReporterReports", fields: [reporterId], references: [id])
-  resolvedBy      User?     @relation("AdminResolvedReports", fields: [resolvedById], references: [id])
-  ad              Ad        @relation(fields: [adId], references: [id])
+  // Relations - Self-relation through User requires Restrict on one side
+  reporter        User      @relation("ReporterReports", fields: [reporterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resolvedBy      User?     @relation("AdminResolvedReports", fields: [resolvedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  ad              Ad        @relation(fields: [adId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ CVs (Jobs) ============
@@ -341,7 +341,7 @@ model CV {
   updatedAt         DateTime  @updatedAt
 
   // Relations
-  user              User      @relation(fields: [userId], references: [id])
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ NOTIFICATIONS ============
@@ -357,7 +357,7 @@ model Notification {
   createdAt   DateTime  @default(now())
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ BANNER ADS ============
@@ -398,7 +398,7 @@ model Shop {
   updatedAt           DateTime  @updatedAt
 
   // Relations
-  user                User      @relation(fields: [userId], references: [id])
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ============ BLOCKLIST ============
@@ -444,7 +444,7 @@ model District {
   nameBn      String?
   slug        String    @unique
   createdAt   DateTime  @default(now())
-  division    Division  @relation(fields: [divisionId], references: [id])
+  division    Division  @relation(fields: [divisionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   areas       Area[]
 }
 
@@ -455,5 +455,5 @@ model Area {
   nameBn      String?
   slug        String    @unique
   createdAt   DateTime  @default(now())
-  district    District  @relation(fields: [districtId], references: [id])
+  district    District  @relation(fields: [districtId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
