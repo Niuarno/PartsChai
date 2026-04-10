@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
 
     // Create ad attributes for category-specific fields
     if (brand || model || categorySpecificFields.length > 0) {
-      const attributesData = [];
+      const attributesData: { adId: string; attributeKey: string; attributeValue: string }[] = [];
       
       if (brand) {
         attributesData.push({
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
 
     // Create boost records if selected
     if (boostTopAd || boostBumpUp || boostUrgent || boostFeatured) {
-      const boostsData = [];
+      const boostsData: { adId: string; userId: string; boostType: string; isActive: boolean; endsAt?: Date }[] = [];
       
       if (boostTopAd) {
         boostsData.push({
