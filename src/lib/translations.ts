@@ -157,7 +157,6 @@ export const translations = {
     sellFast: 'Sell Fast',
     bannerAdvertising: 'Banner Advertising',
     adBoost: 'Ad Boost',
-    helpSupport: 'Help & Support',
     faq: 'FAQ',
     staySafe: 'Stay Safe',
     contactUs: 'Contact Us',

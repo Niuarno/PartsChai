@@ -113,7 +113,7 @@ function SidebarContent({ isCollapsed, activeSection, onSectionChange, onLogout 
                 <Icon className={cn('h-5 w-5 shrink-0', isActive && 'text-emerald-600')} />
                 {!isCollapsed && (
                   <span className="truncate">
-                    {t[item.key as keyof typeof t]}
+                    {String(t[item.key as keyof typeof t])}
                     {item.id === 'membership' && !isMember && (
                       <Badge className="ml-2 bg-amber-100 text-amber-700 text-xs">
                         {t.upgradeToMember?.toString().split(' ')[0] || 'Upgrade'}

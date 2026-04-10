@@ -201,7 +201,7 @@ function MembershipSection() {
             <div key={benefit.key} className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg">
               <span>{benefit.icon}</span>
               <span className="text-sm text-slate-700">
-                {t[benefit.key as keyof typeof t]}
+                {String(t[benefit.key as keyof typeof t])}
               </span>
             </div>
           ))}
@@ -226,7 +226,7 @@ function MembershipSection() {
               <div key={benefit.key} className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
                 <span className="text-lg">{benefit.icon}</span>
                 <span className="text-sm text-slate-700">
-                  {t[benefit.key as keyof typeof t]}
+                  {String(t[benefit.key as keyof typeof t])}
                 </span>
               </div>
             ))}

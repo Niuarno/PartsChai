@@ -318,7 +318,7 @@ interface AdCardProps {
   ad: Ad;
   language: 'en' | 'bn';
   t: typeof translations.en;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string) => React.ReactNode;
   formatPrice: (price: number) => string;
   getTimeAgo: (dateStr: string) => string;
   onMarkSold: (adId: string) => void;

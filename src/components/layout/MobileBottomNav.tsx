@@ -65,7 +65,17 @@ export default function MobileBottomNav() {
   const isChat = searchParams.get('chat') === 'true';
   const isDashboard = searchParams.get('dashboard') === 'true';
 
-  const navItems = [
+  interface NavItem {
+    icon: typeof Home;
+    label: string;
+    isActive: boolean;
+    href?: string;
+    onClick?: () => void;
+    isPrimary?: boolean;
+    badge?: number;
+  }
+
+  const navItems: NavItem[] = [
     {
       icon: Home,
       label: 'Home',
