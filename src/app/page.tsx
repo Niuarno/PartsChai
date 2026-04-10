@@ -327,9 +327,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{
           <section className="bg-slate-100 py-8">
             <div className="container mx-auto px-4">
               <FeaturedAds ads={featuredAds.map(ad => ({
-                ...ad,
-                isPriceNegotiable: true,
+                id: ad.id,
+                title: ad.title,
+                slug: ad.slug,
+                price: ad.price,
+                isPriceNegotiable: ad.isPriceNegotiable,
                 condition: ad.condition || 'used',
+                locationArea: ad.locationArea ?? undefined,
+                locationDistrict: ad.locationDistrict ?? undefined,
+                locationDivision: ad.locationDivision ?? undefined,
+                createdAt: ad.createdAt.toISOString(),
+                isFeatured: ad.isFeatured,
+                isUrgent: ad.isUrgent,
+                isTopAd: ad.isTopAd,
+                images: ad.images.map(img => ({
+                  imageUrl: img.imageUrl,
+                  isPrimary: img.isPrimary,
+                })),
+                user: {
+                  id: ad.user.id,
+                  fullName: ad.user.fullName ?? undefined,
+                  role: ad.user.role,
+                  isVerified: ad.user.isVerified,
+                },
+                category: {
+                  nameEn: ad.category.nameEn,
+                  nameBn: ad.category.nameBn ?? undefined,
+                },
               }))} />
             </div>
           </section>
