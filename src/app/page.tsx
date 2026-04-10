@@ -166,7 +166,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{
   // If browse page
   if (isBrowse) {
     // Get category if specified
-    let category = null;
+    let category: Awaited<ReturnType<typeof db.category.findFirst>> = null;
     if (params.category) {
       category = await db.category.findFirst({
         where: { slug: params.category },
